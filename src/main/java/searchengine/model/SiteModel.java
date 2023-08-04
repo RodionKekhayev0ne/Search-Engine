@@ -1,6 +1,7 @@
 package searchengine.model;
 
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import jakarta.persistence.*;
 
 import searchengine.Application;
@@ -13,6 +14,10 @@ import java.util.*;
 public class SiteModel {
 
     // id,status, status time, status error, url, name
+
+    public Integer getId() {
+        return id;
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

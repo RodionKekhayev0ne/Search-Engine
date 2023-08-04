@@ -7,6 +7,22 @@ import jakarta.persistence.*;
 @Table(name = "lemma")
 public class Lemma {
 
+    public int getId() {
+        return id;
+    }
+
+    public SiteModel getSiteId() {
+        return siteId;
+    }
+
+    public String getLemma() {
+        return lemma;
+    }
+
+    public int getFrequency() {
+        return frequency;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;

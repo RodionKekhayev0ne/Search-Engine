@@ -27,6 +27,9 @@ public class SiteIndexerAct extends RecursiveAction {
     private final PageRepo pageRepo;
     private final LemmaRepo lemmaRepo;
     private final IndexRepo indexRepo;
+    private Document doc;
+    private SiteModel site;
+
 
 
     public SiteIndexerAct(List<String> urls, SitesRepo siteRepo, PageRepo pageRepo, LemmaRepo lemmaRepo, IndexRepo indexRepo) {
@@ -40,27 +43,33 @@ public class SiteIndexerAct extends RecursiveAction {
 
     @Override
     protected void compute() {
+
+
         try {
 
 
             for (String url : urls) {
 
 
-                LemmaFinder finder = LemmaFinder.getInstance();
-                Document doc = Jsoup.connect(url).get();
+                doc = Jsoup.connect(url).get();
+                site = new SiteModel();
 
+                if (doc == null) {
+                    site.setUrl(url);
+                    site.setName(doc.title());
+                    site.setStatus(Application.Status.FAILED);
+                    site.setStatusError("connections problems");
+                    site.setStatusTime(new Date());
+                } else {
 
-                SiteModel site = new SiteModel();
-                site.setUrl(url);
-                site.setName(doc.title());
-                site.setStatus(Application.Status.INDEXED);
-                site.setStatusError("none");
-                site.setStatusTime(new Date());
-
-                siteRepo.save(site);
-
-                System.out.println("site added " + site.getName());
-//
+                    site.setUrl(url);
+                    site.setName(doc.title());
+                    site.setStatus(Application.Status.INDEXED);
+                    site.setStatusError("none");
+                    site.setStatusTime(new Date());
+                    System.out.println("site added " + site.getName());
+                    siteRepo.save(site);
+                }
 
 
                 Elements links = doc.getElementsByTag("a");
@@ -68,53 +77,81 @@ public class SiteIndexerAct extends RecursiveAction {
                 List<String> pages = new ArrayList<>();
 
                 for (Element link : links) {
-                    String href = link.attr("href");
-                    pages.add(href);
+                    if (link.attr("href") == null) {
+                    } else {
+                        String href = link.attr("href");
+                        if (!href.isEmpty() || !href.isBlank()) {
+                            pages.add(href);
+                        }
+                    }
                 }
 
                 for (String link : pages) {
 
+                    String docLink = link;
                     if (link.equals("/cookie")) {
+
                     } else {
+                        Page page = new Page();
+                        if (link.startsWith("/")) {
+                            docLink = site.getUrl() + link;
+                            createEnttPLI(docLink);
+                        }
+                        if (link.startsWith("www")) {
+                            docLink = "http://" + link;
+                            createEnttPLI(docLink);
+                        }
+                        if (link.startsWith("#")) {
+                            continue;
+                        }
+                        if (link.startsWith("http://catalog.svetlovka.ru/jirbis2/index.php") || link.startsWith("https://www.svetlovka.ru//events/lektsii/")) {
+                            continue;
+                        }
+                        if (link.startsWith("http://")) {
+                            docLink = link;
+                            createEnttPLI(docLink);
+                        }
 
-                        if (link.length() > 0)
-                            if (String.valueOf(link.charAt(0)).equals("/")) {
-                                Page page = new Page();
-
-                                Document pageDT = Jsoup.connect(url + link).get();
-                                page.setSiteId(site);
-                                page.setPath(link);
-                                page.setContent(pageDT.html());
-                                page.setCode(200);
-                                pageRepo.save(page);
-
-                                Map<String, Integer> lemmaMap = finder.collectLemmas(pageDT.text());
-                                for (String lemmas : lemmaMap.keySet()) {
-                                    Lemma lemma = new Lemma();
-                                    Index index = new Index();
-                                    lemma.setSiteId(site);
-                                    lemma.setLemma(lemmas);
-                                    lemma.setFrequency(lemmaMap.get(lemmas));
-                                    lemmaRepo.save(lemma);
-
-                                    index.setLemmaId(lemma);
-                                    index.setPageId(page);
-                                    index.setRank(lemmaMap.get(lemmas).doubleValue());
-                                    indexRepo.save(index);
-                                }
-                            }
 
                     }
-
                 }
 
             }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
 
 
     }
+    private void createEnttPLI(String docLink){
+try {
+
+        LemmaFinder finder = LemmaFinder.getInstance();
+        Page page = new Page();
+        Document pageDT = Jsoup.connect(docLink).get();
+        page.setSiteId(site);
+        page.setPath(docLink);
+        page.setContent(pageDT.html());
+        page.setCode(200);
+        pageRepo.save(page);
+
+        Map<String, Integer> lemmaMap = finder.collectLemmas(pageDT.text());
+        for (String lemmas : lemmaMap.keySet()) {
+            Lemma lemma = new Lemma();
+            Index index = new Index();
+            lemma.setSiteId(site);
+            lemma.setLemma(lemmas);
+            lemma.setFrequency(lemmaMap.get(lemmas));
+            lemmaRepo.save(lemma);
+
+            index.setLemmaId(lemma);
+            index.setPageId(page);
+            index.setRank(lemmaMap.get(lemmas).doubleValue());
+            indexRepo.save(index);
+        }
+    }catch (Exception ex){
+ex.printStackTrace();}
+    }
+
 
 }
