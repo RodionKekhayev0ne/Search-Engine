@@ -26,9 +26,12 @@ public class Page {
     private String content;
 
 
+    public Integer getId(){
+        return id;
 
-    public SiteModel getSiteId() {
-        return siteId;
+    }
+    public int getSiteId() {
+        return siteId.getId();
     }
 
     public void setSiteId(SiteModel siteId) {

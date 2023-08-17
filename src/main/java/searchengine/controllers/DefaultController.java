@@ -3,6 +3,7 @@ package searchengine.controllers;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,8 +33,9 @@ public class DefaultController {
 
 
     @RequestMapping("/")
-    public String index() {
+    public String index(Model model) {
 
+        model.addAttribute("count", 10);
         return "index";
     }
 

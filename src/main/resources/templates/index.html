@@ -9,7 +9,8 @@
 <!--[if IE 9]>
 <html class="ie9" lang="ru">
 <![endif]-->
-<!--[if gt IE 9]><!--> <html lang="ru"> <!--<![endif]-->
+<!--[if gt IE 9]><!   //1999/xhtml-->
+<html lang="ru" xmlns:th="http://www.thymeleaf.org"> <!--<![endif]-->
 <head>
   <title>Site Search Engine</title>
   <meta name="description" content="Site Search Engine">
@@ -142,7 +143,7 @@
                   </div>
                 </form>
                 <div class="SearchResult">
-                  <strong class="SearchResult-title">Found&#32;<span class="SearchResult-amount">0</span>&#32;results
+                  <strong class="SearchResult-title">Found&#32;<span class="SearchResult-amount" th:message="${resultSz}">0</span>&#32;results
                   </strong>
                   <div class="SearchResult-content">
                   </div>

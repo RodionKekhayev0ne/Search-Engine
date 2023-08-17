@@ -1,45 +1,14 @@
 package searchengine.controllers;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.PropertyAccessor;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import org.hibernate.MappingException;
-import org.hibernate.Session;
-import org.hibernate.SessionFactory;
-import org.hibernate.boot.Metadata;
-import org.hibernate.boot.MetadataSources;
-import org.hibernate.boot.SessionFactoryBuilder;
-import org.hibernate.boot.model.IdentifierGeneratorDefinition;
-import org.hibernate.boot.model.TypeDefinition;
-import org.hibernate.boot.model.relational.Database;
-import org.hibernate.boot.query.NamedHqlQueryDefinition;
-import org.hibernate.boot.query.NamedNativeQueryDefinition;
-import org.hibernate.boot.query.NamedProcedureCallDefinition;
-import org.hibernate.boot.query.NamedResultSetMappingDescriptor;
-import org.hibernate.boot.registry.StandardServiceRegistry;
-import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
-import org.hibernate.cfg.annotations.NamedEntityGraphDefinition;
-import org.hibernate.engine.spi.FilterDefinition;
-import org.hibernate.mapping.FetchProfile;
-import org.hibernate.mapping.PersistentClass;
-import org.hibernate.mapping.Table;
-import org.hibernate.query.sqm.function.SqmFunctionDescriptor;
-import org.hibernate.service.Service;
-import org.hibernate.service.ServiceRegistry;
-import org.hibernate.type.Type;
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.http.HttpRequest;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import searchengine.dto.statistics.StatisticsResponse;
-import searchengine.model.Lemma;
 import searchengine.model.Page;
 import searchengine.model.SiteModel;
 import searchengine.repos.IndexRepo;
@@ -47,13 +16,11 @@ import searchengine.repos.LemmaRepo;
 import searchengine.repos.PageRepo;
 import searchengine.repos.SitesRepo;
 import searchengine.services.*;
-
-import javax.management.Query;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveAction;
-import java.util.function.Consumer;
+
 
 @RestController
 @ConfigurationProperties(prefix = "indexing-settings")
@@ -67,6 +34,7 @@ public class ApiController {
     private IndexRepo indexrepo;
     private String urls;
     private ForkJoinPool forkJoinPool;
+
 
     public void setUrls(String urls) {
         this.urls = urls;
@@ -86,6 +54,8 @@ public class ApiController {
     public ResponseEntity<StatisticsResponse> statistics() {
         return ResponseEntity.ok(statisticsService.getStatistics());
     }
+
+
 
 
     @GetMapping("/stopIndexing")
@@ -119,14 +89,63 @@ public class ApiController {
         return ResponseEntity.ok(statisticsService.getStatistics());
     }
 
-    //звездный,
+
+    @PostMapping("/indexPage")
+    public ResponseEntity updateSite(@RequestParam("url") String ulr) {
+
+
+        for (SiteModel siteModel: siteRepo.findAll()) {
+            if (siteModel.getUrl().equals(ulr)){
+                System.out.println("ALREADY EXIST");
+                return ResponseEntity.status(HttpStatus.OK).body("URL IS ALREADY EXIST IN DB " + "\n" + siteModel );
+            }
+        }
+        System.out.println("INDEXING UPDATING!!!");
+
+        List<String> siteUrl = new ArrayList<>();
+        siteUrl.add(ulr);
+
+        RecursiveAction indexation = new SiteIndexerAct(siteUrl, siteRepo, pageRepo, lemmaRepo, indexrepo);
+
+        forkJoinPool = new ForkJoinPool();
+        forkJoinPool.invoke(indexation);
+
+
+        System.out.println("INDEXING UPDATED!!!");
+        return ResponseEntity.status(HttpStatus.OK).body("URL ADDED IN DB " + "\n" + siteRepo.findAll());
+    }
+
+
+
     @GetMapping("/search{site}")
-    public ResponseEntity search(@RequestParam String query,@RequestParam int offset,@RequestParam int limit, String site) throws SQLException {
+    public ResponseEntity search(@RequestParam String query, @RequestParam int offset, @RequestParam int limit, String site, Model model) throws SQLException {
 
-      DbSearcher searcher = new DbSearcher(query,limit);
+        DbSearcher searcher = new DbSearcher();
+
+        if (site == null){
+            searcher = new DbSearcher(query,limit,null);
+        }else {
 
 
-           return ResponseEntity.status(HttpStatus.OK).body(searcher.search());
+            for (SiteModel siteModel : siteRepo.findAll()) {
+                if (siteModel.getUrl().equals(site)) {
+                    searcher = new DbSearcher(query, limit,siteModel.getId());
+
+                }
+            }
+
+        }
+
+        List<Page> models = new ArrayList<>();
+        for (Integer id : searcher.search().keySet()){
+
+                models.add(pageRepo.findById(id).get());
+            }
+
+
+         model.addAttribute("resultSz",models.size());
+
+           return ResponseEntity.status(HttpStatus.OK).body(models);
     }
 
 
