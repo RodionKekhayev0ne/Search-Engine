@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration status="INFO">
+
+    <Appenders>
+    <File name="Search" fileName="logs/search.log">
+        <PatternLayout pattern="%d{yyyy-mm-dd HH:mm:ss.SSS} [%t] %-5level- %msg%n"/>
+        <Filters>
+            <ThresholdFilter level="WARN" onMatch="DENY" onMismatch="ACCEPT" />
+        </Filters>
+    </File>
+
+    <File name="InputError" fileName="logs/input_errors.log">
+        <PatternLayout pattern="%d{yyyy-mm-dd HH:mm:ss.SSS} [%t] %-5level- %msg%n"/>
+        <Filters>
+            <ThresholdFilter level="ERROR" onMatch="DENY" onMismatch="ACCEPT" />
+        </Filters>
+    </File>
+
+    <File name="Exceptions" fileName="logs/exceptions.log">
+        <PatternLayout pattern="%d{yyyy-mm-dd HH:mm:ss.SSS} [%t] %-5level - %msg%n"/>
+    </File>
+</Appenders>
+
+<Loggers>
+<Root level="INFO">
+    <AppenderRef ref="Search" level="INFO"/>
+    <AppenderRef ref="InputError" level="WARN" />
+    <AppenderRef ref="Exceptions" level="ERROR"/>
+</Root>>
+</Loggers>
+</configuration>

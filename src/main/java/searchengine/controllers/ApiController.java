@@ -136,16 +136,8 @@ public class ApiController {
 
         }
 
-        List<Page> models = new ArrayList<>();
-        for (Integer id : searcher.search().keySet()){
 
-                models.add(pageRepo.findById(id).get());
-            }
-
-
-         model.addAttribute("resultSz",models.size());
-
-           return ResponseEntity.status(HttpStatus.OK).body(models);
+           return ResponseEntity.status(HttpStatus.OK).body(searcher.search());
     }
 
 

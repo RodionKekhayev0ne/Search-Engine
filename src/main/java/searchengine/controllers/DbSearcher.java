@@ -93,7 +93,7 @@ public class DbSearcher {
         }
 
         HashMap<Integer,Double>  resultMap = pageMap.entrySet().stream()
-                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder())).limit(10)
                 .collect(LinkedHashMap::new,
                         (m, c) -> m.put(c.getKey(), c.getValue()),
                         LinkedHashMap::putAll);
