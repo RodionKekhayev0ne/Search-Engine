@@ -136,7 +136,6 @@ public class ApiController {
 
         }
 
-
            return ResponseEntity.status(HttpStatus.OK).body(searcher.search());
     }
 

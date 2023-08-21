@@ -26,7 +26,7 @@ public class DbSearcher {
         this.id = siteId;
     }
 
-    public HashMap<Integer,Double> search() throws SQLException {
+    public HashMap<String,Double> search() throws SQLException {
 
         if (id == null){
             siteId = "";
@@ -81,18 +81,18 @@ public class DbSearcher {
 
         }
 
-        HashMap<Integer,Double> pageMap = new HashMap<>();
+        HashMap<String,Double> pageMap = new HashMap<>();
         for(Integer id : rankMap.keySet()) {
             String sqlQueryPages = "SELECT * FROM sitesdata.page WHERE id=" + id + limit;
             ResultSet set = statement.executeQuery(sqlQueryPages);
 
 
             while (set.next()) {
-                pageMap.put(set.getInt("id"),rankMap.get(id));
+                pageMap.put(set.getString("path"),rankMap.get(id));
             }
         }
 
-        HashMap<Integer,Double>  resultMap = pageMap.entrySet().stream()
+        HashMap<String,Double>  resultMap = pageMap.entrySet().stream()
                 .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder())).limit(10)
                 .collect(LinkedHashMap::new,
                         (m, c) -> m.put(c.getKey(), c.getValue()),
