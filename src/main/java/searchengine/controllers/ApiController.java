@@ -1,6 +1,7 @@
 package searchengine.controllers;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -8,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import searchengine.Application;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.model.Page;
 import searchengine.model.SiteModel;
@@ -27,6 +29,8 @@ import java.util.concurrent.RecursiveAction;
 @RequestMapping("/api")
 public class ApiController {
     //SELECT * FROM table_name WHERE column_name LIKE '%search_string%';
+
+    private Logger logger = Application.getLogger();
     private final StatisticsService statisticsService;
     private SitesRepo siteRepo;
     private PageRepo pageRepo;
@@ -61,19 +65,18 @@ public class ApiController {
     @GetMapping("/stopIndexing")
     public ResponseEntity<StatisticsResponse> stopIndex() {
         forkJoinPool.shutdown();
-        System.out.println("INDEXING STOPPED!!!");
+        logger.info("INDEXING STOPPED!!!");
         return ResponseEntity.ok(statisticsService.getStatistics());
     }
 
     @GetMapping("/startIndexing")
     public ResponseEntity<StatisticsResponse> indexSite() {
 
-        System.out.println("INDEXING STARTED!!!");
+        logger.info("INDEXING STARTED!!!");
         List<String> siteUrl = new ArrayList<>();
 
         String[] split = urls.split(",");
         for (int i = 0; i < split.length; i++) {
-            System.out.println(split[i]);
             siteUrl.add(split[i]);
 
         }
@@ -85,7 +88,7 @@ public class ApiController {
         forkJoinPool.invoke(indexation);
 
 
-        System.out.println("INDEXING ENDED!!!");
+        logger.info("INDEXING ENDED!!!");
         return ResponseEntity.ok(statisticsService.getStatistics());
     }
 
@@ -96,11 +99,13 @@ public class ApiController {
 
         for (SiteModel siteModel: siteRepo.findAll()) {
             if (siteModel.getUrl().equals(ulr)){
-                System.out.println("ALREADY EXIST");
+                logger.info("URL ALREADY EXIST");
+
                 return ResponseEntity.status(HttpStatus.OK).body("URL IS ALREADY EXIST IN DB " + "\n" + siteModel );
             }
         }
-        System.out.println("INDEXING UPDATING!!!");
+        logger.info("INDEXING UPDATING!!");
+
 
         List<String> siteUrl = new ArrayList<>();
         siteUrl.add(ulr);
@@ -111,7 +116,8 @@ public class ApiController {
         forkJoinPool.invoke(indexation);
 
 
-        System.out.println("INDEXING UPDATED!!!");
+        logger.info("INDEXING UPDATED!!!");
+        System.out.println();
         return ResponseEntity.status(HttpStatus.OK).body("URL ADDED IN DB " + "\n" + siteRepo.findAll());
     }
 
@@ -120,10 +126,13 @@ public class ApiController {
     @GetMapping("/search{site}")
     public ResponseEntity search(@RequestParam String query, @RequestParam int offset, @RequestParam int limit, String site, Model model) throws SQLException {
 
+        logger.info("Search query - " + query);
+
+
         DbSearcher searcher = new DbSearcher();
 
         if (site == null){
-            searcher = new DbSearcher(query,limit,null);
+             searcher = new DbSearcher(query,limit,null);
         }else {
 
 
@@ -136,6 +145,7 @@ public class ApiController {
 
         }
 
+        logger.info("SEARCHING COMPLETED");
            return ResponseEntity.status(HttpStatus.OK).body(searcher.search());
     }
 

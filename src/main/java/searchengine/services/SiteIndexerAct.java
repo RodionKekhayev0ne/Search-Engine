@@ -1,4 +1,5 @@
 package searchengine.services;
+import org.apache.logging.log4j.Logger;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -29,7 +30,7 @@ public class SiteIndexerAct extends RecursiveAction {
     private final IndexRepo indexRepo;
     private Document doc;
     private SiteModel site;
-
+    private Logger logger = Application.getLogger();
 
 
     public SiteIndexerAct(List<String> urls, SitesRepo siteRepo, PageRepo pageRepo, LemmaRepo lemmaRepo, IndexRepo indexRepo) {
@@ -55,6 +56,8 @@ public class SiteIndexerAct extends RecursiveAction {
                 site = new SiteModel();
 
                 if (doc == null) {
+
+                    logger.error("CONNECTION PROBLEMS ON THE SITE " + url);
                     site.setUrl(url);
                     site.setName(doc.title());
                     site.setStatus(Application.Status.FAILED);
@@ -67,7 +70,8 @@ public class SiteIndexerAct extends RecursiveAction {
                     site.setStatus(Application.Status.INDEXED);
                     site.setStatusError("none");
                     site.setStatusTime(new Date());
-                    System.out.println("site added " + site.getName());
+
+                    logger.info("site added " + site.getName());
                     siteRepo.save(site);
                 }
 
@@ -78,10 +82,12 @@ public class SiteIndexerAct extends RecursiveAction {
 
                 for (Element link : links) {
                     if (link.attr("href") == null) {
+                        logger.error("link not found or equal null");
                     } else {
                         String href = link.attr("href");
                         if (!href.isEmpty() || !href.isBlank()) {
                             pages.add(href);
+                            logger.info("ADDED NEW LINK" + href);
                         }
                     }
                 }
@@ -118,7 +124,7 @@ public class SiteIndexerAct extends RecursiveAction {
 
             }
             } catch (Exception ex) {
-                ex.printStackTrace();
+            logger.warn(ex.getMessage());
             }
 
 
@@ -150,7 +156,8 @@ try {
             indexRepo.save(index);
         }
     }catch (Exception ex){
-ex.printStackTrace();}
+             logger.warn(ex.getMessage());
+}
     }
 
 
