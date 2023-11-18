@@ -60,7 +60,7 @@ public class SiteIndexerAct extends RecursiveAction {
                     logger.error("CONNECTION PROBLEMS ON THE SITE " + url);
                     site.setUrl(url);
                     site.setName(doc.title());
-                    site.setStatus(Application.Status.FAILED);
+                    site.setStatus(Application.Status.INDEXED);
                     site.setStatusError("connections problems");
                     site.setStatusTime(new Date());
                 } else {
