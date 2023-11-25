@@ -59,7 +59,6 @@ public class SiteIndexer extends RecursiveAction {
                 doc = Jsoup.connect(url).get();
                 site = new SiteModel();
                 int pageCount = 0;
-
                 if (doc == null) {
                     logger.error("CONNECTION PROBLEMS ON THE SITE " + url);
                     site.setUrl(url);
@@ -83,9 +82,7 @@ public class SiteIndexer extends RecursiveAction {
                 Elements links = doc.getElementsByTag("a");
                 for (Element link : links) {
                     String href = link.attr("href");
-                    if (!href.isEmpty() || !href.isBlank()) {
-                        if (href.equals("/cookie")) {
-                        } else {
+                    if (!href.isEmpty() || !href.isBlank() && href.equals("/cookie")) {
                             switch (String.valueOf(href.charAt(0))){
                                 case "/":
                                     String documentLink = url + href;
@@ -97,12 +94,11 @@ public class SiteIndexer extends RecursiveAction {
                                     createEntities(documentLink);
                             }
                         }
-                        }
                     }
                 site.setPageCount(pageCount);
                 site.setLemmaCount(lemmaCount);
                 siteRepo.save(site);
-            }
+             }
             } catch(Exception ex){
                 logger.warn(ex.getMessage());
             }
