@@ -18,33 +18,15 @@ import java.util.Date;
 public class DefaultController {
 
 
-
-
-
-
-
     /**
      * Метод формирует страницу из HTML-файла index.html,
      * который находится в папке resources/templates.
      * Это делает библиотека Thymeleaf.
      */
-
-
-
-
     @RequestMapping("/")
     public String index(Model model) {
 
-        model.addAttribute("count", 10);
+//        model.addAttribute("count", 10);
         return "index";
     }
-
-
-    @GetMapping
-    public void getUsers() {
-
-    }
-
-
-
 }

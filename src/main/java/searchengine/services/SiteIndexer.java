@@ -4,6 +4,8 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import searchengine.Application;
 import searchengine.LemmaFinder;
 import searchengine.model.Index;
@@ -14,13 +16,15 @@ import searchengine.repos.IndexRepo;
 import searchengine.repos.LemmaRepo;
 import searchengine.repos.PageRepo;
 import searchengine.repos.SitesRepo;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.RecursiveAction;
 
-public class SiteIndexerAct extends RecursiveAction {
+public class SiteIndexer extends RecursiveAction {
 
 
     private final List<String> urls;
@@ -31,134 +35,105 @@ public class SiteIndexerAct extends RecursiveAction {
     private Document doc;
     private SiteModel site;
     private Logger logger = Application.getLogger();
+    LemmaFinder finder;
 
 
-    public SiteIndexerAct(List<String> urls, SitesRepo siteRepo, PageRepo pageRepo, LemmaRepo lemmaRepo, IndexRepo indexRepo) {
+    public SiteIndexer(List<String> urls, SitesRepo siteRepo, PageRepo pageRepo, LemmaRepo lemmaRepo, IndexRepo indexRepo) {
         this.urls = urls;
         this.siteRepo = siteRepo;
         this.pageRepo = pageRepo;
         this.lemmaRepo = lemmaRepo;
         this.indexRepo = indexRepo;
+        try {
+            finder = LemmaFinder.getInstance();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
-
+    private int lemmaCount = 0;
     @Override
     protected void compute() {
-
-
         try {
-
-
             for (String url : urls) {
-
-
                 doc = Jsoup.connect(url).get();
                 site = new SiteModel();
+                int pageCount = 0;
 
                 if (doc == null) {
-
                     logger.error("CONNECTION PROBLEMS ON THE SITE " + url);
                     site.setUrl(url);
                     site.setName(doc.title());
-                    site.setStatus(Application.Status.INDEXED);
+                    site.setStatus(Application.Status.FAILED);
                     site.setStatusError("connections problems");
                     site.setStatusTime(new Date());
+                    site.setPageCount(0);
+                    site.setLemmaCount(0);
                 } else {
-
                     site.setUrl(url);
                     site.setName(doc.title());
                     site.setStatus(Application.Status.INDEXED);
-                    site.setStatusError("none");
+                    site.setStatusError("");
                     site.setStatusTime(new Date());
-
+                    site.setPageCount(pageCount);
+                    site.setLemmaCount(lemmaCount);
                     logger.info("site added " + site.getName());
-                    siteRepo.save(site);
                 }
-
-
+                siteRepo.save(site);
                 Elements links = doc.getElementsByTag("a");
-
-                List<String> pages = new ArrayList<>();
-
                 for (Element link : links) {
-                    if (link.attr("href") == null) {
-                        logger.error("link not found or equal null");
-                    } else {
-                        String href = link.attr("href");
-                        if (!href.isEmpty() || !href.isBlank()) {
-                            pages.add(href);
-                            logger.info("ADDED NEW LINK" + href);
+                    String href = link.attr("href");
+                    if (!href.isEmpty() || !href.isBlank()) {
+                        if (href.equals("/cookie")) {
+                        } else {
+                            switch (String.valueOf(href.charAt(0))){
+                                case "/":
+                                    String documentLink = url + href;
+                                    pageCount++;
+                                    createEntities(documentLink);
+                                default:
+                                    documentLink = href;
+                                    pageCount++;
+                                    createEntities(documentLink);
+                            }
+                        }
                         }
                     }
-                }
-
-                for (String link : pages) {
-
-                    String docLink = link;
-                    if (link.equals("/cookie")) {
-
-                    } else {
-                        Page page = new Page();
-                        if (link.startsWith("/")) {
-                            docLink = site.getUrl() + link;
-                            createEnttPLI(docLink);
-                        }
-                        if (link.startsWith("www")) {
-                            docLink = "http://" + link;
-                            createEnttPLI(docLink);
-                        }
-                        if (link.startsWith("#")) {
-                            continue;
-                        }
-                        if (link.startsWith("http://catalog.svetlovka.ru/jirbis2/index.php") || link.startsWith("https://www.svetlovka.ru//events/lektsii/")) {
-                            continue;
-                        }
-                        if (link.startsWith("http://")) {
-                            docLink = link;
-                            createEnttPLI(docLink);
-                        }
-
-
-                    }
-                }
-
+                site.setPageCount(pageCount);
+                site.setLemmaCount(lemmaCount);
+                siteRepo.save(site);
             }
-            } catch (Exception ex) {
-            logger.warn(ex.getMessage());
+            } catch(Exception ex){
+                logger.warn(ex.getMessage());
             }
-
-
     }
-    private void createEnttPLI(String docLink){
-try {
-
-        LemmaFinder finder = LemmaFinder.getInstance();
+    private void createEntities(String documentLink){
+    try {
         Page page = new Page();
-        Document pageDT = Jsoup.connect(docLink).get();
-        page.setSiteId(site);
-        page.setPath(docLink);
-        page.setContent(pageDT.html());
-        page.setCode(200);
-        pageRepo.save(page);
-
-        Map<String, Integer> lemmaMap = finder.collectLemmas(pageDT.text());
-        for (String lemmas : lemmaMap.keySet()) {
-            Lemma lemma = new Lemma();
-            Index index = new Index();
-            lemma.setSiteId(site);
-            lemma.setLemma(lemmas);
-            lemma.setFrequency(lemmaMap.get(lemmas));
-            lemmaRepo.save(lemma);
-
-            index.setLemmaId(lemma);
-            index.setPageId(page);
-            index.setRank(lemmaMap.get(lemmas).doubleValue());
-            indexRepo.save(index);
+        Document pageData = Jsoup.connect(documentLink).get();
+                page.setSiteId(site);
+                page.setPath(documentLink);
+                page.setContent((pageData.text() + pageData.title()).toLowerCase());
+                page.setTitle(pageData.title());
+                page.setCode(200);
+                pageRepo.save(page);
+                Map<String, Integer> lemmaMap = finder.collectLemmas((pageData.text() + pageData.title()).toLowerCase());
+                for (String lemmas : lemmaMap.keySet()) {
+                    lemmaCount++;
+                    Lemma lemma = new Lemma();
+                    Index index = new Index();
+                    lemma.setSiteId(site);
+                    lemma.setLemma(lemmas);
+                    lemma.setFrequency(lemmaMap.get(lemmas));
+                    lemmaRepo.save(lemma);
+                    index.setLemmaId(lemma);
+                    index.setPageId(page);
+                    index.setRank(lemmaMap.get(lemmas).doubleValue());
+                    indexRepo.save(index);
+                }
+        }catch(Exception ex){
+            logger.warn(ex.getMessage());
         }
-    }catch (Exception ex){
-             logger.warn(ex.getMessage());
-}
+
     }
-
-
 }

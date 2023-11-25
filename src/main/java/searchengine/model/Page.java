@@ -22,7 +22,12 @@ public class Page {
     @Column(nullable = false)
     private int code;
 
+
+
     @Column(nullable = false)
+    private String title;
+
+    @Column(length = 65535,nullable = false)
     private String content;
 
 
@@ -30,6 +35,16 @@ public class Page {
         return id;
 
     }
+
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
     public int getSiteId() {
         return siteId.getId();
     }

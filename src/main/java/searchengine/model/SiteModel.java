@@ -44,6 +44,29 @@ public class SiteModel {
     private String name;
 
 
+    @Column(nullable = false, name = "page_count")
+    private Integer pageCount;
+
+
+    @Column(nullable = false, name = "lemma_count")
+    private Integer lemmaCount;
+    public Integer getPageCount() {
+        return pageCount;
+    }
+
+    public void setPageCount(Integer pageCount) {
+        this.pageCount = pageCount;
+    }
+
+    public Integer getLemmaCount() {
+        return lemmaCount;
+    }
+
+    public void setLemmaCount(Integer lemmaCount) {
+        this.lemmaCount = lemmaCount;
+    }
+
+
     public Enum<Application.Status> getStatus() {
         return status;
     }
