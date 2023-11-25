@@ -82,7 +82,7 @@ public class SiteIndexer extends RecursiveAction {
                 Elements links = doc.getElementsByTag("a");
                 for (Element link : links) {
                     String href = link.attr("href");
-                    if (!href.isEmpty() || !href.isBlank() && href.equals("/cookie")) {
+                    if (!href.isEmpty() && !href.equals("/cookie")) {
                             switch (String.valueOf(href.charAt(0))){
                                 case "/":
                                     String documentLink = url + href;
