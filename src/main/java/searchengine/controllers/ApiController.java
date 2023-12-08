@@ -1,6 +1,9 @@
 package searchengine.controllers;
 
-import org.apache.logging.log4j.Logger;
+import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -9,10 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import searchengine.Application;
 import searchengine.dto.statistics.*;
 import searchengine.lemma.DetailedStatisticsItem;
-import searchengine.model.Page;
 import searchengine.model.SearchResult;
 import searchengine.model.SiteModel;
 import searchengine.repos.IndexRepo;
@@ -24,52 +25,30 @@ import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveAction;
-import java.util.concurrent.atomic.AtomicInteger;
 
 
 @RestController
-@ConfigurationProperties(prefix = "indexing-settings")
 @RequestMapping("/api")
+@Slf4j
+@RequiredArgsConstructor
 public class ApiController {
-    //SELECT * FROM table_name WHERE column_name LIKE '%search_string%';
 
-    private Logger logger = Application.getLogger();
     private final StatisticsService statisticsService;
-    private SitesRepo siteRepo;
-    private PageRepo pageRepo;
-    private LemmaRepo lemmaRepo;
-    private IndexRepo indexrepo;
-    private String urls;
-    private ForkJoinPool forkJoinPool;
-
-
-    private Environment environment;
-
-
-    public void setUrls(String urls) {
-        this.urls = urls;
-    }
-
-    @Autowired
-    public ApiController(SitesRepo service, PageRepo pageService, LemmaRepo lemmaService, IndexRepo indexService, StatisticsService statisticsService,Environment environment) {
-        this.siteRepo = service;
-        this.pageRepo = pageService;
-        this.lemmaRepo = lemmaService;
-        this.indexrepo = indexService;
-        this.statisticsService = statisticsService;
-        this.environment = environment;
-    }
-
-
-
-
-
+    private final SitesRepo siteRepo;
+    private final PageRepo pageRepo;
+    private final LemmaRepo lemmaRepo;
+    private final IndexRepo indexrepo;
+    private final Environment environment;
+     private ForkJoinPool forkJoinPool = new ForkJoinPool();
 
 
     @GetMapping("/stopIndexing")
     public ResponseEntity<StatisticsResponse> stopIndex() {
+
+
+
         forkJoinPool.shutdown();
-        logger.info("INDEXING STOPPED!!!");
+        log.info("INDEXING STOPPED!!!");
 
         StatisticsResponse response = new StatisticsResponse();
         response.setResult(true);
@@ -79,22 +58,23 @@ public class ApiController {
 
     @GetMapping("/startIndexing")
     public ResponseEntity<IndexResponse> indexSite() {
-
+        ForkJoinPool forkJoinPool = new ForkJoinPool();
 
         boolean result = true;
 
         if (result) {
-            logger.info("INDEXING STARTED!!!");
+            log.info("INDEXING STARTED!!!");
             List<String> siteUrl = new ArrayList<>();
-            String[] split = urls.split(",");
+            String[] split = environment.getProperty("indexing-settings.urls").split(",");
             for (int i = 0; i < split.length; i++) {
                 siteUrl.add(split[i]);
 
             }
-            RecursiveAction indexation = new SiteIndexer(siteUrl, siteRepo, pageRepo, lemmaRepo, indexrepo);
+
+            RecursiveAction indexation = new SiteIndexer(siteUrl, siteRepo, pageRepo, lemmaRepo, indexrepo,0,0);
             forkJoinPool = new ForkJoinPool();
             forkJoinPool.invoke(indexation);
-            logger.info("INDEXING ENDED!!!");
+            log.info("INDEXING ENDED!!!");
             result = false;
             IndexResponse response = new IndexResponse();
             response.setResult(true);
@@ -108,29 +88,28 @@ public class ApiController {
         }
     }
 
-
     @PostMapping("/indexPage")
     public ResponseEntity<IndexResponse> updateSite(@RequestParam("url") String ulr) {
-
+        ForkJoinPool forkJoinPool = new ForkJoinPool();
         for (SiteModel siteModel: siteRepo.findAll()) {
             if (siteModel.getUrl().equals(ulr)){
-                logger.info("URL ALREADY EXIST");
+                log.info("URL ALREADY EXIST");
                 IndexResponse response = new IndexResponse();
                 response.setResult(false);
                 response.setError("Страница уже проиндексирована");
                 return ResponseEntity.badRequest().body(response);
             }
         }
-        logger.info("INDEXING UPDATING!!");
+        log.info("INDEXING UPDATING!!");
 
         List<String> siteUrl = new ArrayList<>();
         siteUrl.add(ulr);
 
-        RecursiveAction indexation = new SiteIndexer(siteUrl, siteRepo, pageRepo, lemmaRepo, indexrepo);
+        RecursiveAction indexation = new SiteIndexer(siteUrl, siteRepo, pageRepo, lemmaRepo, indexrepo,0,0);
 
         forkJoinPool = new ForkJoinPool();
         forkJoinPool.invoke(indexation);
-        logger.info("INDEXING UPDATED!!!");
+        log.info("INDEXING UPDATED!!!");
         System.out.println();
 
         IndexResponse response = new IndexResponse();
@@ -144,27 +123,28 @@ public class ApiController {
     @GetMapping("/statistics")
     public ResponseEntity<StatisticsResponse> statistics(){
         StatisticsResponse response = new StatisticsResponse();
-        int siteCount = 0;
-        int pageCount = 0;
-        int lemmaCount = 0;
+        Integer siteCount = 0;
+        Integer pageCount = 0;
+        Integer lemmaCount = 0;
+        List<SiteModel> sitesList = new ArrayList<>();
        for (SiteModel model : siteRepo.findAll()){
-           List<SiteModel> list = new ArrayList<>();
-           list.add(model);
+
+           sitesList.add(model);
            siteCount +=1;
        }
-        for (SiteModel model : siteRepo.findAll()){
-            pageCount+= model.getPageCount();
+        for (SiteModel model : sitesList){
+            pageCount  += model.getPageCount().intValue();
         }
 
-        for (SiteModel model : siteRepo.findAll()){
-            lemmaCount+= model.getLemmaCount();
+        for (SiteModel model : sitesList){
+            lemmaCount += model.getLemmaCount();
         }
         TotalStatistics totalStatistics = new TotalStatistics();
         totalStatistics.setIndexing(true);
         totalStatistics.setPages(pageCount);
         totalStatistics.setLemmas(lemmaCount);
         totalStatistics.setSites(siteCount);
-        List<DetailedStatisticsItem> list = new ArrayList<>();
+        List<DetailedStatisticsItem> statisticList = new ArrayList<>();
         for (SiteModel site : siteRepo.findAll()) {
             DetailedStatisticsItem statisticsItem = new DetailedStatisticsItem();
             statisticsItem.setError(site.getStatusError());
@@ -174,11 +154,11 @@ public class ApiController {
             statisticsItem.setStatusTime(site.getStatusTime().getTime());
             statisticsItem.setPages(site.getPageCount());
             statisticsItem.setLemmas(site.getLemmaCount());
-            list.add(statisticsItem);
+            statisticList.add(statisticsItem);
         }
         StatisticsData statisticsData = new StatisticsData();
         statisticsData.setTotal(totalStatistics);
-        statisticsData.setDetailed(list);
+        statisticsData.setDetailed(statisticList);
         response.setResult(true);
         response.setStatistics(statisticsData);
         return ResponseEntity.ok(response);
@@ -189,7 +169,7 @@ public class ApiController {
     @RequestMapping("/search{site}")
     public ResponseEntity<SearchResponse> search(@RequestParam String query, @RequestParam int offset, @RequestParam int limit, String site, Model model) throws SQLException {
 
-        logger.info("Search query - " + query);
+        log.info("Search query - " + query);
 
 
         DbSearcher searcher = new DbSearcher();
@@ -206,7 +186,7 @@ public class ApiController {
             }
         }
         List<SearchResult> values = searcher.search();
-        logger.info("SEARCHING COMPLETED");
+        log.info("SEARCHING COMPLETED");
         SearchResponse response = new SearchResponse();
         response.setCount(values.size());
         response.setData(values);

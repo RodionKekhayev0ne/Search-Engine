@@ -2,13 +2,21 @@ package searchengine.model;
 
 
 import jakarta.persistence.*;
+import lombok.*;
+import lombok.experimental.Accessors;
 
 @Entity
 @Table(name = "page")
+@AllArgsConstructor
+@Builder
+@NoArgsConstructor
+@Getter
+@Setter
 public class Page {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Setter(AccessLevel.NONE)
     private Integer id;
 
 
@@ -30,50 +38,4 @@ public class Page {
     @Column(length = 65535,nullable = false)
     private String content;
 
-
-    public Integer getId(){
-        return id;
-
-    }
-
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public int getSiteId() {
-        return siteId.getId();
-    }
-
-    public void setSiteId(SiteModel siteId) {
-        this.siteId = siteId;
-    }
-
-    public String getPath() {
-        return path;
-    }
-
-    public void setPath(String path) {
-        this.path = path;
-    }
-
-    public int getCode() {
-        return code;
-    }
-
-    public void setCode(int code) {
-        this.code = code;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(String content) {
-        this.content = content;
-    }
 }

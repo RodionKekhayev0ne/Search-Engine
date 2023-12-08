@@ -2,8 +2,10 @@ package searchengine.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.util.EnvironmentPropertySource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +28,7 @@ import java.util.*;
 
 @Component
 @ConfigurationProperties(prefix = "spring.datasource")
+@Slf4j
 public class DbSearcher {
 
     private String query;
@@ -33,7 +36,7 @@ public class DbSearcher {
     private String siteId;
     private String limit = " LIMIT ";
     private Integer id;
-    private Logger logger = Application.getLogger();
+
     private PageRepo repo;
     private SitesRepo sitesRepo;
     private LemmaRepo lemmaRepo;
@@ -68,10 +71,10 @@ public class DbSearcher {
         try {
             if (id == null) {
                 siteId = "";
-                logger.info("NO SITE PARAM FROM QUERY (ALL SITES)");
+                log.info("NO SITE PARAM FROM QUERY (ALL SITES)");
             } else {
                 siteId = " AND site_id=" + id;
-                logger.info("SEARCHING FROM SITE WITH id= " + id);
+                log.info("SEARCHING FROM SITE WITH id= " + id);
             }
             Connection connection = DriverManager
                     .getConnection(environment.getProperty("searcher-properties.url"),
@@ -121,7 +124,7 @@ public class DbSearcher {
             for (String path : resultMap.keySet()) {
                 for (Page page : repo.findByPath(path)) {
                     SearchResult searchResult = new SearchResult();
-                    searchResult.setSiteName(sitesRepo.findById(page.getSiteId()).get().getName());
+                    searchResult.setSiteName(sitesRepo.findById(page.getSiteId().getId()).get().getName());
                     searchResult.setUri(page.getPath());
                     searchResult.setTitle(page.getTitle());
                     searchResult.setSite("");
@@ -131,7 +134,7 @@ public class DbSearcher {
                     results.add(searchResult);
                 }
             }
-        }catch (Exception ex){logger.warn(ex.getMessage());}
+        }catch (Exception ex){log.warn(ex.getMessage());}
             return results;
     }
     private StringBuilder createSnippet(String text, String word){

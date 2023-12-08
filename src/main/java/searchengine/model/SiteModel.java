@@ -4,6 +4,7 @@ package searchengine.model;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import jakarta.persistence.*;
 
+import lombok.*;
 import searchengine.Application;
 
 
@@ -11,21 +12,19 @@ import java.util.*;
 
 @Entity
 @Table(name = "site")
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@Data
 public class SiteModel {
-
-    // id,status, status time, status error, url, name
-
     public Integer getId() {
         return id;
     }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Setter(AccessLevel.NONE)
     private Integer id;
-
-
-//    @OneToMany(mappedBy = "site",cascade = CascadeType.ALL,orphanRemoval = true)
-//    private Set<Page> pageSet = new HashSet<>();
 
 
     @Column(nullable = false)
@@ -50,62 +49,6 @@ public class SiteModel {
 
     @Column(nullable = false, name = "lemma_count")
     private Integer lemmaCount;
-    public Integer getPageCount() {
-        return pageCount;
-    }
-
-    public void setPageCount(Integer pageCount) {
-        this.pageCount = pageCount;
-    }
-
-    public Integer getLemmaCount() {
-        return lemmaCount;
-    }
-
-    public void setLemmaCount(Integer lemmaCount) {
-        this.lemmaCount = lemmaCount;
-    }
-
-
-    public Enum<Application.Status> getStatus() {
-        return status;
-    }
-
-    public void setStatus(Enum<Application.Status> status) {
-        this.status = status;
-    }
-
-    public Date getStatusTime() {
-        return statusTime;
-    }
-
-    public void setStatusTime(Date statusTime) {
-        this.statusTime = statusTime;
-    }
-
-    public String getStatusError() {
-        return statusError;
-    }
-
-    public void setStatusError(String statusError) {
-        this.statusError = statusError;
-    }
-
-    public String getUrl() {
-        return url;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
 
     @Override
     public String toString() {

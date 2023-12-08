@@ -1,8 +1,14 @@
 package searchengine.model;
 import jakarta.persistence.*;
+import lombok.*;
 
 @Entity
 @Table(name = "`index`")
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@Getter
+@Setter
 public class Index {
 
     @Id
@@ -20,31 +26,4 @@ public class Index {
 
     @Column(nullable = false,name = "`rank`")
     private Double rank;
-
-
-
-    public Page getPageId() {
-        return pageId;
-    }
-
-    public Lemma getLemmaId() {
-        return lemmaId;
-    }
-
-    public Double getRank() {
-        return rank;
-    }
-
-    public void setPageId(Page pageId) {
-        this.pageId = pageId;
-    }
-
-    public void setLemmaId(Lemma lemmaId) {
-        this.lemmaId = lemmaId;
-    }
-
-    public void setRank(Double rank) {
-        this.rank = rank;
-    }
-
 }

@@ -11,7 +11,6 @@ import searchengine.model.SiteModel;
 import java.util.ArrayList;
 import java.util.List;
 
-
 @Component
 @ConfigurationProperties(prefix = "indexing-settings")
 public class SitesList {

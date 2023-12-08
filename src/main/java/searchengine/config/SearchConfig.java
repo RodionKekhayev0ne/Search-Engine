@@ -9,15 +9,11 @@ import org.springframework.stereotype.Component;
 public class SearchConfig {
 
 
-
-    private static String url;
     private static String password;
     private static String username;
 
 
-    public static String getUrl() {
-        return url;
-    }
+
 
     public static String getPassword() {
         return password;

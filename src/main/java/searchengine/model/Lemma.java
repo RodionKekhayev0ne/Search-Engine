@@ -2,26 +2,17 @@ package searchengine.model;
 
 
 import jakarta.persistence.*;
+import lombok.*;
 
 @Entity
 @Table(name = "lemma")
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@Getter
+@Setter
 public class Lemma {
 
-    public int getId() {
-        return id;
-    }
-
-    public SiteModel getSiteId() {
-        return siteId;
-    }
-
-    public String getLemma() {
-        return lemma;
-    }
-
-    public int getFrequency() {
-        return frequency;
-    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -38,16 +29,4 @@ public class Lemma {
     @Column(nullable = false)
     private int frequency;
 
-
-    public void setSiteId(SiteModel siteId) {
-        this.siteId = siteId;
-    }
-
-    public void setLemma(String lemma) {
-        this.lemma = lemma;
-    }
-
-    public void setFrequency(int frequency) {
-        this.frequency = frequency;
-    }
 }
