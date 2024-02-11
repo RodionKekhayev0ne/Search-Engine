@@ -21,6 +21,8 @@ import searchengine.repos.LemmaRepo;
 import searchengine.repos.PageRepo;
 import searchengine.repos.SitesRepo;
 import searchengine.services.*;
+
+import java.io.IOException;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ForkJoinPool;
@@ -167,7 +169,7 @@ public class ApiController {
 
 
     @RequestMapping("/search{site}")
-    public ResponseEntity<SearchResponse> search(@RequestParam String query, @RequestParam int offset, @RequestParam int limit, String site, Model model) throws SQLException {
+    public ResponseEntity<SearchResponse> search(@RequestParam String query, @RequestParam int offset, @RequestParam int limit, String site, Model model) throws SQLException, IOException {
 
         log.info("Search query - " + query);
 

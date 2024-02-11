@@ -23,6 +23,7 @@ import searchengine.repos.PageRepo;
 import searchengine.repos.SitesRepo;
 
 
+import java.io.IOException;
 import java.sql.*;
 import java.util.*;
 
@@ -34,7 +35,7 @@ public class DbSearcher {
     private String query;
     private int limitN;
     private String siteId;
-    private String limit = " LIMIT ";
+
     private Integer id;
 
     private PageRepo repo;
@@ -44,7 +45,8 @@ public class DbSearcher {
     private LemmaFinder finder;
     private Environment environment;
 
-    public DbSearcher(){}
+    public DbSearcher() {
+    }
 
 
     public DbSearcher(String query, int limit, Integer siteId,
@@ -61,13 +63,15 @@ public class DbSearcher {
         this.environment = environment;
         try {
             finder = LemmaFinder.getInstance();
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
-    public List<SearchResult> search() throws SQLException{
+
+    public List<SearchResult> search() throws SQLException, IOException {
         List<SearchResult> results = new ArrayList<>();
         HashMap<String, Double> resultMap = new HashMap<>();
+        LemmaFinder finder = LemmaFinder.getInstance();
         try {
             if (id == null) {
                 siteId = "";
@@ -82,7 +86,7 @@ public class DbSearcher {
                             environment.getProperty("searcher-properties.password"));
 
             Statement statement = connection.createStatement();
-            String[] splitedQuery = query.split("\s+");
+            String[] splitedQuery = finder.getLemmaSet(query).toArray(String[]::new);
             HashMap<Integer, Double> rankMap = new HashMap<>();
             for (int i = 0; i < splitedQuery.length; i++) {
                 String sqlQuery = "SELECT * FROM sitesdata.lemma WHERE lemma='" + splitedQuery[i] + "'" + siteId + " ORDER BY frequency DESC";
@@ -116,7 +120,7 @@ public class DbSearcher {
                 }
             }
             resultMap = pageMap.entrySet().stream()
-                    .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder())).limit(limitN)
+                    .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
                     .collect(LinkedHashMap::new, (m, c) -> m.put(c.getKey(), c.getValue()),
                             LinkedHashMap::putAll);
             statement.close();
@@ -134,25 +138,28 @@ public class DbSearcher {
                     results.add(searchResult);
                 }
             }
-        }catch (Exception ex){log.warn(ex.getMessage());}
-            return results;
+        } catch (Exception ex) {
+            log.warn(ex.getMessage());
+        }
+        return results;
     }
-    private StringBuilder createSnippet(String text, String word){
+
+    private StringBuilder createSnippet(String text, String word) {
         StringBuilder builder = new StringBuilder();
         String lastWord = "";
         int index = 0;
-        for (String boldWord : Arrays.stream(word.split("\s+")).toList()) {
+        for (String boldWord : Arrays.stream(word.toLowerCase().split("\s+")).toList()) {
             index = text.indexOf(boldWord);
-            if (index == -1){
+            if (index == -1) {
                 index++;
-                builder.append("<b>" + text.substring(index, boldWord.length() + index) + "</b>" + " ") ;
+                builder.append("<b>" + text.substring(index, boldWord.length() + index) + "</b>" + " ");
                 lastWord = boldWord;
             } else {
-                builder.append("<b>" + text.substring(text.indexOf(boldWord), boldWord.length() + index + 1) + "</b>" + " ") ;
+                builder.append("<b>" + text.substring(text.indexOf(boldWord), boldWord.length() + index + 1) + "</b>" + " ");
                 lastWord = boldWord;
             }
         }
-            builder.append(text.substring(lastWord.length() + index,lastWord.length() + index + 400));
-            return builder;
+        builder.append(text.substring(lastWord.length() + index, lastWord.length() + index + 400));
+        return builder;
     }
 }

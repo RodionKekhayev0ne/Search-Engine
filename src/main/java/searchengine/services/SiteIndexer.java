@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.concurrent.RecursiveAction;
 
 
-
 @Slf4j
 @AllArgsConstructor
 public class SiteIndexer extends RecursiveAction {
@@ -40,8 +39,8 @@ public class SiteIndexer extends RecursiveAction {
     private final LemmaRepo lemmaRepo;
     private final IndexRepo indexRepo;
     private int pageCount;
-
     private int lemmaCount;
+
     @Override
     protected void compute() {
         try {
@@ -51,7 +50,7 @@ public class SiteIndexer extends RecursiveAction {
                 SiteModel site = new SiteModel();
                 if (doc == null) {
                     log.error("CONNECTION PROBLEMS ON THE SITE " + url);
-                     site = SiteModel.builder()
+                    site = SiteModel.builder()
                             .name(doc.title())
                             .status(Application.Status.FAILED)
                             .statusError("connections problems")
@@ -60,9 +59,8 @@ public class SiteIndexer extends RecursiveAction {
                             .pageCount(0)
                             .lemmaCount(0)
                             .build();
-                       siteRepo.save(site);
+                    siteRepo.save(site);
                 } else {
-
                     site = SiteModel.builder()
                             .name(doc.title())
                             .status(Application.Status.INDEXED)
@@ -76,61 +74,88 @@ public class SiteIndexer extends RecursiveAction {
                     log.info("site add " + site.getName());
                 }
                 siteRepo.save(site);
-                Elements links = doc.getElementsByTag("a");
+                Elements links = doc.select("a[href]");
                 for (Element link : links) {
-                    String href = link.attr("href");
-                    formatLink(href, url,site,doc);
-                    }
+                    String href = link.attr("abs:href");
+                    formatLink(href, url, site, doc);
+                }
                 site.setPageCount(pageCount);
                 site.setLemmaCount(lemmaCount);
                 siteRepo.save(site);
-             }
-            } catch(Exception ex){
-                log.warn(ex.getMessage());
             }
-    }
-    private void createEntities(String documentLink,SiteModel site,Document doc){
-    try {
-        LemmaFinder finder = LemmaFinder.getInstance();
-        Document pageData = Jsoup.connect(documentLink).get();
-                 Page page = Page.builder().siteId(site)
-                         .path(documentLink)
-                         .content((pageData.text() + pageData.title())
-                                 .toLowerCase())
-                         .title(pageData.title())
-                         .code(200)
-                         .build();
-                pageRepo.save(page);
-                Map<String, Integer> lemmaMap = finder.collectLemmas((pageData.text() + pageData.title()).toLowerCase());
-                for (String lemmas : lemmaMap.keySet()) {
-                    lemmaCount++;
-                    Lemma lemma = Lemma.builder()
-                            .siteId(site)
-                            .lemma(lemmas)
-                            .frequency(lemmaMap.get(lemmas)).build();
-                    Index index = Index.builder()
-                            .lemmaId(lemma).pageId(page)
-                            .rank(lemmaMap.get(lemmas).doubleValue())
-                            .build();
-                    lemmaRepo.save(lemma);
-                    indexRepo.save(index);
-                }
-        }catch(Exception ex){
+        } catch (Exception ex) {
             log.warn(ex.getMessage());
         }
     }
-    private void formatLink(String href,String url,SiteModel site, Document doc){
+
+    private void createEntities(String documentLink, SiteModel site, Document doc) {
+        try {
+            LemmaFinder finder = LemmaFinder.getInstance();
+            Document pageData = Jsoup.connect(documentLink).get();
+            Page page = Page.builder().siteId(site)
+                    .path(documentLink)
+                    .content((pageData.text() + pageData.title())
+                            .toLowerCase())
+                    .title(pageData.title())
+                    .code(200)
+                    .build();
+            pageRepo.save(page);
+            Map<String, Integer> lemmaMap = finder.collectLemmas((pageData.text() + pageData.title()).toLowerCase());
+            for (String lemmas : lemmaMap.keySet()) {
+                lemmaCount++;
+                Lemma lemma = Lemma.builder()
+                        .siteId(site)
+                        .lemma(lemmas.toLowerCase())
+                        .frequency(lemmaMap.get(lemmas)).build();
+                Index index = Index.builder()
+                        .lemmaId(lemma).pageId(page)
+                        .rank(lemmaMap.get(lemmas).doubleValue())
+                        .build();
+                lemmaRepo.save(lemma);
+                indexRepo.save(index);
+                crawl(documentLink,site);
+            }
+        } catch (Exception ex) {
+            log.warn(ex.getMessage());
+        }
+    }
+
+    private void formatLink(String href, String url, SiteModel site, Document doc) {
         if (!href.isEmpty() && !href.equals("/cookie")) {
-            switch (String.valueOf(href.charAt(0))){
-                case "/":
+            switch (String.valueOf(href.charAt(0))) {
+                case "#":
+
+                case "www":
                     String documentLink = url + href;
+                    createEntities(documentLink, site, doc);
                     pageCount++;
-                    createEntities(documentLink,site,doc);
+                case "/":
+                    documentLink = url + href;
+                    pageCount++;
+                    createEntities(documentLink, site, doc);
                 default:
                     documentLink = href;
                     pageCount++;
-                    createEntities(documentLink,site,doc);
+                    createEntities(documentLink, site, doc);
             }
+        }
+    }
+
+    public void crawl(String url,SiteModel site) {
+        try {
+            // Проверка, что URL еще не был посещен
+            if (pageRepo.findByPath(url) == null) {
+                // Загрузка веб-страницы
+                Document doc = Jsoup.connect(url).get();
+                // Добавление текущего URL в список посещенных
+                Elements links = doc.select("a[href]");
+                for (Element link : links) {
+                    String href = link.attr("abs:href");
+                    formatLink(href, url, site, doc);
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("For '" + url + "': " + e.getMessage());
         }
     }
 }
