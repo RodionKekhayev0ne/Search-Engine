@@ -27,6 +27,7 @@ import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveAction;
+import java.util.stream.Collectors;
 
 
 @RestController
@@ -166,12 +167,19 @@ public class ApiController {
         return ResponseEntity.ok(response);
     }
 
-
+    public  List<List<SearchResult>> splitList(List<SearchResult> list, int chunkSize) {
+        List<List<SearchResult>> dividedList = new ArrayList<>();
+        for (int i = 0; i < list.size(); i += chunkSize) {
+            dividedList.add(list.subList(i, Math.min(i + chunkSize, list.size())));
+        }
+        return dividedList;
+    }
 
     @RequestMapping("/search{site}")
     public ResponseEntity<SearchResponse> search(@RequestParam String query, @RequestParam int offset, @RequestParam int limit, String site, Model model) throws SQLException, IOException {
 
-        log.info("Search query - " + query);
+        log.info("Search query - " + query + "\n" +
+                limit);
 
 
         DbSearcher searcher = new DbSearcher();
@@ -188,10 +196,13 @@ public class ApiController {
             }
         }
         List<SearchResult> values = searcher.search();
+        List<List<SearchResult>> resultSearch = splitList(values,limit);
         log.info("SEARCHING COMPLETED");
         SearchResponse response = new SearchResponse();
         response.setCount(values.size());
-        response.setData(values);
+        for (List<SearchResult> search : resultSearch) {
+            response.setData(search);
+        }
         response.setResult(true);
         response.setCount(values.size());
         return ResponseEntity.ok(response);
