@@ -74,6 +74,7 @@ public class DbSearcher {
         LemmaFinder finder = LemmaFinder.getInstance();
         try {
             if (id == null) {
+//
                 siteId = "";
                 log.info("NO SITE PARAM FROM QUERY (ALL SITES)");
             } else {
@@ -147,19 +148,61 @@ public class DbSearcher {
     private StringBuilder createSnippet(String text, String word) {
         StringBuilder builder = new StringBuilder();
         String lastWord = "";
+
         int index = 0;
-        for (String boldWord : Arrays.stream(word.toLowerCase().split("\s+")).toList()) {
-            index = text.indexOf(boldWord);
+        for (String boldWord : Arrays.stream(word.toLowerCase().split("\\s+")).toList()) {
+            index = text.indexOf(findSimilarWord(boldWord,Arrays.stream(text.split("\\s+")).toList()));
+
             if (index == -1) {
                 index++;
-                builder.append("<b>" + text.substring(index, boldWord.length() + index) + "</b>" + " ");
+                builder.append("<b>" + text.substring(index, boldWord.length() + index) + "</b>" + "");
                 lastWord = boldWord;
             } else {
-                builder.append("<b>" + text.substring(text.indexOf(boldWord), boldWord.length() + index + 1) + "</b>" + " ");
+                builder.append("<b>" + text.substring(index, boldWord.length() + index) + "</b>" + "");
                 lastWord = boldWord;
             }
         }
         builder.append(text.substring(lastWord.length() + index, lastWord.length() + index + 400));
         return builder;
+    }
+
+    public static int levenshteinDistance(String word1, String word2) {
+        int[][] dp = new int[word1.length() + 1][word2.length() + 1];
+
+        for (int i = 0; i <= word1.length(); i++) {
+            for (int j = 0; j <= word2.length(); j++) {
+                if (i == 0) {
+                    dp[i][j] = j;
+                } else if (j == 0) {
+                    dp[i][j] = i;
+                } else {
+                    dp[i][j] = min(
+                            dp[i - 1][j - 1] + (word1.charAt(i - 1) == word2.charAt(j - 1) ? 0 : 1),
+                            dp[i - 1][j] + 1,
+                            dp[i][j - 1] + 1
+                    );
+                }
+            }
+        }
+
+        return dp[word1.length()][word2.length()];
+    }
+
+    private static int min(int a, int b, int c) {
+        return Math.min(a, Math.min(b, c));
+    }
+    public static String findSimilarWord(String target, List<String> wordList) {
+        int minDistance = Integer.MAX_VALUE;
+        String similarWord = "";
+
+        for (String word : wordList) {
+            int distance = levenshteinDistance(target, word);
+            if (distance < minDistance) {
+                minDistance = distance;
+                similarWord = word;
+            }
+        }
+
+        return similarWord;
     }
 }

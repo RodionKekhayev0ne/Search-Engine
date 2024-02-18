@@ -69,6 +69,7 @@
             <artifactId>jsoup</artifactId>
             <version>1.15.4</version>
         </dependency>
+
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
@@ -123,6 +124,11 @@
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-api</artifactId>
             <version>2.19.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.opennlp</groupId>
+            <artifactId>opennlp-tools</artifactId>
+            <version>1.9.3</version>
         </dependency>
         <!--        <dependency>-->
         <!--            <groupId>org.webjars.npm</groupId>-->

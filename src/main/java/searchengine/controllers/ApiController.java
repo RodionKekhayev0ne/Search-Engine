@@ -185,7 +185,7 @@ public class ApiController {
         DbSearcher searcher = new DbSearcher();
 
         if (site == null){
-             searcher = new DbSearcher(query,limit,null,pageRepo,siteRepo,lemmaRepo, indexrepo,environment);
+            searcher = new DbSearcher(query,limit,null,pageRepo,siteRepo,lemmaRepo, indexrepo,environment);
         }else {
 
 
@@ -200,13 +200,19 @@ public class ApiController {
         log.info("SEARCHING COMPLETED");
         SearchResponse response = new SearchResponse();
         response.setCount(values.size());
-        for (List<SearchResult> search : resultSearch) {
-            response.setData(search);
+//        for (List<SearchResult> search : resultSearch) {
+//            response.setData(search);
+//        }
+        if (values.size() - offset < limit){
+            response.setData(values.subList(offset,offset + (values.size() - offset)));
+        }else {
+            response.setData(values.subList(offset, limit + offset));
         }
         response.setResult(true);
         response.setCount(values.size());
         return ResponseEntity.ok(response);
     }
+
 }
 //Интернет-магазин PlayBack.ru",
 //    "Вышний Волочёк портал города",

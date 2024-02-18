@@ -22,10 +22,7 @@ import searchengine.repos.PageRepo;
 import searchengine.repos.SitesRepo;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.RecursiveAction;
 
 
@@ -100,6 +97,25 @@ public class SiteIndexer extends RecursiveAction {
                     .code(200)
                     .build();
             pageRepo.save(page);
+
+            List<String> withoutLemmatization = Arrays.stream(pageData.text().split("\\s+")).toList();
+            Map<String, Integer> withoutLemmatizationCount = new HashMap<>();
+
+            for (String word : withoutLemmatization) { withoutLemmatizationCount.put(word, withoutLemmatizationCount.getOrDefault(word, 0) + 1);}
+
+            for (String word : withoutLemmatizationCount.keySet()){
+                Lemma lemma = Lemma.builder()
+                        .siteId(site)
+                        .lemma(word.toLowerCase())
+                        .frequency(withoutLemmatizationCount.get(word)).build();
+                Index index = Index.builder()
+                        .lemmaId(lemma).pageId(page)
+                        .rank(withoutLemmatizationCount.get(word).doubleValue())
+                        .build();
+                lemmaRepo.save(lemma);
+                indexRepo.save(index);
+                crawl(documentLink,site);
+            }
             Map<String, Integer> lemmaMap = finder.collectLemmas((pageData.text() + pageData.title()).toLowerCase());
             for (String lemmas : lemmaMap.keySet()) {
                 lemmaCount++;
