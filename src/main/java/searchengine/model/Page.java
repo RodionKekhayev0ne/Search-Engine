@@ -3,7 +3,7 @@ package searchengine.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import lombok.experimental.Accessors;
+
 
 @Entity
 @Table(name = "page")
@@ -24,7 +24,7 @@ public class Page {
     @JoinColumn(name = "site_id", referencedColumnName = "id")
     private SiteModel siteId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String path;
 
     @Column(nullable = false)

@@ -28,23 +28,23 @@ import java.util.concurrent.RecursiveAction;
 
 @Slf4j
 @AllArgsConstructor
-public class SiteIndexer extends RecursiveAction {
+public class SiteIndexer extends RecursiveAction{
 
     private final List<String> urls;
-    private final SitesRepo siteRepo;
-    private final PageRepo pageRepo;
-    private final LemmaRepo lemmaRepo;
-    private final IndexRepo indexRepo;
+    private final transient SitesRepo siteRepo;
+    private final transient PageRepo pageRepo;
+    private final transient LemmaRepo lemmaRepo;
+    private final transient IndexRepo indexRepo;
     private int pageCount;
     private int lemmaCount;
 
     @Override
     protected void compute() {
         try {
-            LemmaFinder finder = LemmaFinder.getInstance();
+
             for (String url : urls) {
                 Document doc = Jsoup.connect(url).get();
-                SiteModel site = new SiteModel();
+                SiteModel site;
                 if (doc == null) {
                     log.error("CONNECTION PROBLEMS ON THE SITE " + url);
                     site = SiteModel.builder()
@@ -74,7 +74,7 @@ public class SiteIndexer extends RecursiveAction {
                 Elements links = doc.select("a[href]");
                 for (Element link : links) {
                     String href = link.attr("abs:href");
-                    formatLink(href, url, site, doc);
+                    formatLink(href, url, site);
                 }
                 site.setPageCount(pageCount);
                 site.setLemmaCount(lemmaCount);
@@ -85,7 +85,7 @@ public class SiteIndexer extends RecursiveAction {
         }
     }
 
-    private void createEntities(String documentLink, SiteModel site, Document doc) {
+    private void createEntities(String documentLink, SiteModel site) {
         try {
             LemmaFinder finder = LemmaFinder.getInstance();
             Document pageData = Jsoup.connect(documentLink).get();
@@ -136,23 +136,24 @@ public class SiteIndexer extends RecursiveAction {
         }
     }
 
-    private void formatLink(String href, String url, SiteModel site, Document doc) {
+    private void formatLink(String href, String url, SiteModel site) {
         if (!href.isEmpty() && !href.equals("/cookie")) {
             switch (String.valueOf(href.charAt(0))) {
-                case "#":
-
                 case "www":
                     String documentLink = url + href;
-                    createEntities(documentLink, site, doc);
+                    createEntities(documentLink, site);
                     pageCount++;
+                    break;
                 case "/":
                     documentLink = url + href;
                     pageCount++;
-                    createEntities(documentLink, site, doc);
+                    createEntities(documentLink, site);
+                    break;
                 default:
                     documentLink = href;
                     pageCount++;
-                    createEntities(documentLink, site, doc);
+                    createEntities(documentLink, site);
+                    break;
             }
         }
     }
@@ -167,11 +168,11 @@ public class SiteIndexer extends RecursiveAction {
                 Elements links = doc.select("a[href]");
                 for (Element link : links) {
                     String href = link.attr("abs:href");
-                    formatLink(href, url, site, doc);
+                    formatLink(href, url, site);
                 }
             }
         } catch (IOException e) {
-            System.err.println("For '" + url + "': " + e.getMessage());
+            log.error("For '" + url + "': " + e.getMessage());
         }
     }
 }

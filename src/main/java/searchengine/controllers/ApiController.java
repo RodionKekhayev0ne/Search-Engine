@@ -61,7 +61,7 @@ public class ApiController {
 
     @GetMapping("/startIndexing")
     public ResponseEntity<IndexResponse> indexSite() {
-        ForkJoinPool forkJoinPool = new ForkJoinPool();
+
 
         boolean result = true;
 
@@ -70,15 +70,13 @@ public class ApiController {
             List<String> siteUrl = new ArrayList<>();
             String[] split = environment.getProperty("indexing-settings.urls").split(",");
             for (int i = 0; i < split.length; i++) {
-                siteUrl.add(split[i]);
+                siteUrl.addAll(Collections.singleton(split[i]));
 
             }
-
             RecursiveAction indexation = new SiteIndexer(siteUrl, siteRepo, pageRepo, lemmaRepo, indexrepo,0,0);
             forkJoinPool = new ForkJoinPool();
             forkJoinPool.invoke(indexation);
             log.info("INDEXING ENDED!!!");
-            result = false;
             IndexResponse response = new IndexResponse();
             response.setResult(true);
             response.setError("");
@@ -93,7 +91,7 @@ public class ApiController {
 
     @PostMapping("/indexPage")
     public ResponseEntity<IndexResponse> updateSite(@RequestParam("url") String ulr) {
-        ForkJoinPool forkJoinPool = new ForkJoinPool();
+
         for (SiteModel siteModel: siteRepo.findAll()) {
             if (siteModel.getUrl().equals(ulr)){
                 log.info("URL ALREADY EXIST");
@@ -113,8 +111,6 @@ public class ApiController {
         forkJoinPool = new ForkJoinPool();
         forkJoinPool.invoke(indexation);
         log.info("INDEXING UPDATED!!!");
-        System.out.println();
-
         IndexResponse response = new IndexResponse();
         response.setResult(true);
         response.setError("");
@@ -185,24 +181,21 @@ public class ApiController {
         DbSearcher searcher = new DbSearcher();
 
         if (site == null){
-            searcher = new DbSearcher(query,limit,null,pageRepo,siteRepo,lemmaRepo, indexrepo,environment);
+            searcher = new DbSearcher(query,null,pageRepo,siteRepo,environment);
         }else {
 
 
             for (SiteModel siteModel : siteRepo.findAll()) {
                 if (siteModel.getUrl().equals(site)) {
-                    searcher = new DbSearcher(query, limit,siteModel.getId(),pageRepo,siteRepo,lemmaRepo, indexrepo,environment);
+                    searcher = new DbSearcher(query,siteModel.getId(),pageRepo,siteRepo,environment);
                 }
             }
         }
         List<SearchResult> values = searcher.search();
-        List<List<SearchResult>> resultSearch = splitList(values,limit);
         log.info("SEARCHING COMPLETED");
         SearchResponse response = new SearchResponse();
         response.setCount(values.size());
-//        for (List<SearchResult> search : resultSearch) {
-//            response.setData(search);
-//        }
+
         if (values.size() - offset < limit){
             response.setData(values.subList(offset,offset + (values.size() - offset)));
         }else {

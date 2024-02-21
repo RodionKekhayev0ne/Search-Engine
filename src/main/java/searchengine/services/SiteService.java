@@ -14,11 +14,6 @@ public class SiteService {
     public SiteService(SitesRepo repository) {
         this.repository = repository;
     }
-
-    public void createEntity(SiteModel entity) {
-        repository.save(entity);
-    }
-
     public Iterable<SiteModel> getAllEntities(){
         return repository.findAll();
     }

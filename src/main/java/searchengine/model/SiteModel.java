@@ -1,7 +1,7 @@
 package searchengine.model;
 
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
+
 import jakarta.persistence.*;
 
 import lombok.*;
@@ -36,7 +36,7 @@ public class SiteModel {
     @Column(nullable = false, name = "status_error")
     private String statusError;
 
-    @Column(nullable = false)
+    @Column(nullable = false,unique = true)
     private String url;
 
     @Column(nullable = false)
