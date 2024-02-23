@@ -60,7 +60,7 @@ public class SiteIndexer extends RecursiveAction{
                 } else {
                     site = SiteModel.builder()
                             .name(doc.title())
-                            .status(Application.Status.INDEXED)
+                            .status(Application.Status.INDEXING)
                             .statusError("")
                             .statusTime(new Date())
                             .url(url)
@@ -76,10 +76,13 @@ public class SiteIndexer extends RecursiveAction{
                     String href = link.attr("abs:href");
                     formatLink(href, url, site);
                 }
+
                 site.setPageCount(pageCount);
                 site.setLemmaCount(lemmaCount);
+                site.setStatus(Application.Status.INDEXED);
                 siteRepo.save(site);
             }
+
         } catch (Exception ex) {
             log.warn(ex.getMessage());
         }
